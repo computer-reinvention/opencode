@@ -214,10 +214,25 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
 
     // -------------------------------------------------------------------
     // GET /desktop/graph/all-symbols — full symbol list for initial load
+    // Waits server-side for trie MCP to be connected before querying.
     // -------------------------------------------------------------------
     const allSymbols = Effect.fn("DesktopHttpApi.allSymbols")(function* (ctx: {
       query: { rank_by?: string; limit?: number }
     }) {
+      // Poll until the trie MCP server is connected (up to 30s).
+      // This avoids the frontend needing to retry — the connection race
+      // is resolved here, once, before returning.
+      const MAX_WAIT_MS = 30_000
+      const POLL_MS = 500
+      const deadline = Date.now() + MAX_WAIT_MS
+      while (Date.now() < deadline) {
+        const statuses = yield* mcp.status()
+        const trieStatus = statuses["trie"]
+        if (trieStatus?.status === "connected") break
+        // Not connected yet — wait and retry
+        yield* Effect.sleep(`${POLL_MS} millis`)
+      }
+
       const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() =>
         callTrieTool(tools as any, "all_symbols", {
