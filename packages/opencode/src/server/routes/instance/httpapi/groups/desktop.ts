@@ -11,6 +11,7 @@ export const DesktopPaths = {
   session: `${root}/session`,
   summary: `${root}/graph/summary`,
   allSymbols: `${root}/graph/all-symbols`,
+  allEdges: `${root}/graph/all-edges`,
   grep: `${root}/graph/grep`,
   read: `${root}/graph/read`,
   trace: `${root}/graph/trace`,
@@ -24,6 +25,11 @@ export const DesktopPaths = {
 export const AllSymbolsQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   rank_by: Schema.optional(Schema.String),
+  limit: Schema.optional(Schema.NumberFromString),
+})
+
+export const AllEdgesQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
   limit: Schema.optional(Schema.NumberFromString),
 })
 
@@ -110,6 +116,19 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.allSymbols",
           summary: "All symbols",
           description: "Return all symbols for initial graph population. No predicate required.",
+        }),
+      ),
+    )
+    .add(
+      // All edges — dedicated initial-load endpoint, returns all call-graph edges.
+      HttpApiEndpoint.get("allEdges", DesktopPaths.allEdges, {
+        query: AllEdgesQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.allEdges",
+          summary: "All edges",
+          description: "Return all call-graph edges for initial graph population.",
         }),
       ),
     )

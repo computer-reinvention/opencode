@@ -243,6 +243,27 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     })
 
     // -------------------------------------------------------------------
+    // GET /desktop/graph/all-edges — full edge list for initial load
+    // -------------------------------------------------------------------
+    const allEdges = Effect.fn("DesktopHttpApi.allEdges")(function* (ctx: {
+      query: { limit?: number }
+    }) {
+      // Same MCP-ready wait as allSymbols
+      const MAX_WAIT_MS = 30_000
+      const POLL_MS = 500
+      const deadline = Date.now() + MAX_WAIT_MS
+      while (Date.now() < deadline) {
+        const statuses = yield* mcp.status()
+        if (statuses["trie"]?.status === "connected") break
+        yield* Effect.sleep(`${POLL_MS} millis`)
+      }
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "all_edges", { limit: ctx.query.limit ?? 50000 }),
+      )
+    })
+
+    // -------------------------------------------------------------------
     // GET /desktop/graph/summary — project summary
     // -------------------------------------------------------------------
     const summary = Effect.fn("DesktopHttpApi.summary")(function* () {
@@ -308,6 +329,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
       .handle("allSymbols", allSymbols)
+      .handle("allEdges", allEdges)
       .handle("summary", summary)
       .handle("grep", grep)
       .handle("read", read)
