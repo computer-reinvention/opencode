@@ -68,6 +68,7 @@ import {
 import { EventApi } from "./groups/event"
 import { PtyConnectApi } from "./groups/pty"
 import { eventHandlers } from "./handlers/event"
+import { desktopHandlers } from "./handlers/desktop"
 import { configHandlers } from "./handlers/config"
 import { controlHandlers } from "./handlers/control"
 import { experimentalHandlers } from "./handlers/experimental"
@@ -132,6 +133,7 @@ const ptyConnectApiRoutes = HttpApiBuilder.layer(PtyConnectApi).pipe(
 )
 const instanceApiRoutes = HttpApiBuilder.layer(InstanceHttpApi).pipe(
   Layer.provide([
+    desktopHandlers,
     configHandlers,
     experimentalHandlers,
     fileHandlers,
