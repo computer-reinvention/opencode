@@ -216,7 +216,8 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     // GET /desktop/graph/summary — project summary
     // -------------------------------------------------------------------
     const summary = Effect.fn("DesktopHttpApi.summary")(function* () {
-      const tools = yield* Effect.tryPromise(() => mcp.tools())
+      // mcp.tools() returns Effect.Effect — yield* it directly, don't wrap in tryPromise
+      const tools = yield* mcp.tools()
       const result = yield* Effect.tryPromise(() => callTrieTool(tools as any, "summary", {}))
       return result
     })
@@ -227,7 +228,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     const grep = Effect.fn("DesktopHttpApi.grep")(function* (ctx: {
       payload: { predicate?: Record<string, unknown>; rank_by?: string; limit?: number }
     }) {
-      const tools = yield* Effect.tryPromise(() => mcp.tools())
+      const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() =>
         callTrieTool(tools as any, "grep", {
           predicate: ctx.payload.predicate ?? {},
@@ -241,7 +242,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     // POST /desktop/graph/read — proxy trie_read
     // -------------------------------------------------------------------
     const read = Effect.fn("DesktopHttpApi.read")(function* (ctx: { payload: { qname: string } }) {
-      const tools = yield* Effect.tryPromise(() => mcp.tools())
+      const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() => callTrieTool(tools as any, "read", { qname: ctx.payload.qname }))
     })
 
@@ -251,7 +252,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     const trace = Effect.fn("DesktopHttpApi.trace")(function* (ctx: {
       payload: { from_qname: string; direction?: string; depth?: number }
     }) {
-      const tools = yield* Effect.tryPromise(() => mcp.tools())
+      const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() =>
         callTrieTool(tools as any, "trace", {
           from_qname: ctx.payload.from_qname,
@@ -267,7 +268,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     const symbolsByFile = Effect.fn("DesktopHttpApi.symbolsByFile")(function* (ctx: {
       query: { path: string }
     }) {
-      const tools = yield* Effect.tryPromise(() => mcp.tools())
+      const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() =>
         callTrieTool(tools as any, "symbols_by_file", { file_path: ctx.query.path }),
       )
