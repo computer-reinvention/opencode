@@ -2,7 +2,7 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { Authorization } from "../middleware/authorization"
 import { InstanceContextMiddleware } from "../middleware/instance-context"
-import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery } from "../middleware/workspace-routing"
+import { WorkspaceRoutingMiddleware, WorkspaceRoutingQuery, WorkspaceRoutingQueryFields } from "../middleware/workspace-routing"
 
 const root = "/desktop"
 
@@ -37,6 +37,7 @@ export const TracePayload = Schema.Struct({
 })
 
 export const SymbolsByFileQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
   path: Schema.String,
 })
 
@@ -137,7 +138,7 @@ export const DesktopApi = HttpApi.make("desktop").add(
     .add(
       // Symbols by file — convenience for sidebar file clicks.
       HttpApiEndpoint.get("symbolsByFile", DesktopPaths.symbolsByFile, {
-        query: Schema.extend(WorkspaceRoutingQuery, SymbolsByFileQuery),
+        query: SymbolsByFileQuery,
         success: JsonAny,
       }).annotateMerge(
         OpenApi.annotations({
