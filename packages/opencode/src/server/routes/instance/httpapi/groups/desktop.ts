@@ -10,6 +10,7 @@ export const DesktopPaths = {
   event: `${root}/event`,
   session: `${root}/session`,
   summary: `${root}/graph/summary`,
+  allSymbols: `${root}/graph/all-symbols`,
   grep: `${root}/graph/grep`,
   read: `${root}/graph/read`,
   trace: `${root}/graph/trace`,
@@ -19,6 +20,12 @@ export const DesktopPaths = {
 // ---------------------------------------------------------------------------
 // Request / response schemas
 // ---------------------------------------------------------------------------
+
+export const AllSymbolsQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  rank_by: Schema.optional(Schema.String),
+  limit: Schema.optional(Schema.NumberFromString),
+})
 
 export const GrepPayload = Schema.Struct({
   predicate: Schema.optional(Schema.Record(Schema.String, Schema.Any)),
@@ -90,6 +97,19 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.summary",
           summary: "Graph project summary",
           description: "Returns aggregate symbol/edge counts for the project.",
+        }),
+      ),
+    )
+    .add(
+      // All symbols — dedicated initial-load endpoint, no predicate required.
+      HttpApiEndpoint.get("allSymbols", DesktopPaths.allSymbols, {
+        query: AllSymbolsQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.allSymbols",
+          summary: "All symbols",
+          description: "Return all symbols for initial graph population. No predicate required.",
         }),
       ),
     )

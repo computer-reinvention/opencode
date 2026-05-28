@@ -213,6 +213,21 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     })
 
     // -------------------------------------------------------------------
+    // GET /desktop/graph/all-symbols — full symbol list for initial load
+    // -------------------------------------------------------------------
+    const allSymbols = Effect.fn("DesktopHttpApi.allSymbols")(function* (ctx: {
+      query: { rank_by?: string; limit?: number }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "all_symbols", {
+          rank_by: ctx.query.rank_by ?? "inbound_count",
+          limit: ctx.query.limit ?? 5000,
+        }),
+      )
+    })
+
+    // -------------------------------------------------------------------
     // GET /desktop/graph/summary — project summary
     // -------------------------------------------------------------------
     const summary = Effect.fn("DesktopHttpApi.summary")(function* () {
@@ -277,6 +292,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     return handlers
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
+      .handle("allSymbols", allSymbols)
       .handle("summary", summary)
       .handle("grep", grep)
       .handle("read", read)
