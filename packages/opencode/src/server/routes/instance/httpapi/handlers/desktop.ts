@@ -267,7 +267,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     // GET /desktop/graph/system-model — high-level system model for the graph view
     // -------------------------------------------------------------------
     const systemModel = Effect.fn("DesktopHttpApi.systemModel")(function* (ctx: {
-      query: { landmark_limit?: number }
+      query: { landmark_limit?: number; include_tests?: string }
     }) {
       // Same MCP-ready wait as allSymbols/allEdges — this is an initial-load endpoint.
       const MAX_WAIT_MS = 30_000
@@ -280,7 +280,10 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       }
       const tools = yield* mcp.tools()
       return yield* Effect.tryPromise(() =>
-        callTrieTool(tools as any, "system_model", { landmark_limit: ctx.query.landmark_limit ?? 60 }),
+        callTrieTool(tools as any, "system_model", {
+          landmark_limit: ctx.query.landmark_limit ?? 160,
+          include_tests: ctx.query.include_tests === "true",
+        }),
       )
     })
 

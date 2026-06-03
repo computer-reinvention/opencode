@@ -37,6 +37,8 @@ export const AllEdgesQuery = Schema.Struct({
 export const SystemModelQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   landmark_limit: Schema.optional(Schema.NumberFromString),
+  // string "true"/"false" — parsed in the handler (no BooleanFromString in this effect ver)
+  include_tests: Schema.optional(Schema.String),
 })
 
 export const GrepPayload = Schema.Struct({
