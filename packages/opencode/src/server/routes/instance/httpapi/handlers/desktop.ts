@@ -264,6 +264,27 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     })
 
     // -------------------------------------------------------------------
+    // GET /desktop/graph/system-model — high-level system model for the graph view
+    // -------------------------------------------------------------------
+    const systemModel = Effect.fn("DesktopHttpApi.systemModel")(function* (ctx: {
+      query: { landmark_limit?: number }
+    }) {
+      // Same MCP-ready wait as allSymbols/allEdges — this is an initial-load endpoint.
+      const MAX_WAIT_MS = 30_000
+      const POLL_MS = 500
+      const deadline = Date.now() + MAX_WAIT_MS
+      while (Date.now() < deadline) {
+        const statuses = yield* mcp.status()
+        if (statuses["trie"]?.status === "connected") break
+        yield* Effect.sleep(`${POLL_MS} millis`)
+      }
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "system_model", { landmark_limit: ctx.query.landmark_limit ?? 60 }),
+      )
+    })
+
+    // -------------------------------------------------------------------
     // GET /desktop/graph/summary — project summary
     // -------------------------------------------------------------------
     const summary = Effect.fn("DesktopHttpApi.summary")(function* () {
@@ -330,6 +351,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handle("session", sessionCreate)
       .handle("allSymbols", allSymbols)
       .handle("allEdges", allEdges)
+      .handle("systemModel", systemModel)
       .handle("summary", summary)
       .handle("grep", grep)
       .handle("read", read)

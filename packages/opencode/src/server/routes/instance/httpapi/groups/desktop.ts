@@ -12,6 +12,7 @@ export const DesktopPaths = {
   summary: `${root}/graph/summary`,
   allSymbols: `${root}/graph/all-symbols`,
   allEdges: `${root}/graph/all-edges`,
+  systemModel: `${root}/graph/system-model`,
   grep: `${root}/graph/grep`,
   read: `${root}/graph/read`,
   trace: `${root}/graph/trace`,
@@ -31,6 +32,11 @@ export const AllSymbolsQuery = Schema.Struct({
 export const AllEdgesQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   limit: Schema.optional(Schema.NumberFromString),
+})
+
+export const SystemModelQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  landmark_limit: Schema.optional(Schema.NumberFromString),
 })
 
 export const GrepPayload = Schema.Struct({
@@ -129,6 +135,20 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.allEdges",
           summary: "All edges",
           description: "Return all call-graph edges for initial graph population.",
+        }),
+      ),
+    )
+    .add(
+      // System model — high-level model of the system for the graph view.
+      HttpApiEndpoint.get("systemModel", DesktopPaths.systemModel, {
+        query: SystemModelQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.systemModel",
+          summary: "System model",
+          description:
+            "Return the high-level system model: classified+scored nodes, role summaries, role-to-role flow edges, and landmark set.",
         }),
       ),
     )
