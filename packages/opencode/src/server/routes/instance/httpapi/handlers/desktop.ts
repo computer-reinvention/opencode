@@ -158,6 +158,7 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
     const bus = yield* Bus.Service
     const mcp = yield* MCP.Service
     const session = yield* Session.Service
+    const file = yield* File.Service
 
     // -------------------------------------------------------------------
     // GET /desktop/event — graph canvas SSE stream
@@ -349,6 +350,36 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       )
     })
 
+    // -------------------------------------------------------------------
+    // GET /desktop/graph/file-triefact — proxy trie_file_triefact
+    // -------------------------------------------------------------------
+    const fileTriefact = Effect.fn("DesktopHttpApi.fileTriefact")(function* (ctx: {
+      query: { path: string }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "file_triefact", { file_path: ctx.query.path }),
+      )
+    })
+
+    // -------------------------------------------------------------------
+    // GET /desktop/graph/file-source — raw source text for the editor
+    // -------------------------------------------------------------------
+    const fileSource = Effect.fn("DesktopHttpApi.fileSource")(function* (ctx: {
+      query: { path: string }
+    }) {
+      const content = yield* file.read(ctx.query.path)
+      return { path: ctx.query.path, type: content.type, content: content.content }
+    })
+
+    // -------------------------------------------------------------------
+    // GET /desktop/graph/activity — proxy trie_activity (live status + stale)
+    // -------------------------------------------------------------------
+    const activity = Effect.fn("DesktopHttpApi.activity")(function* () {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() => callTrieTool(tools as any, "activity", {}))
+    })
+
     return handlers
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
@@ -360,5 +391,8 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handle("read", read)
       .handle("trace", trace)
       .handle("symbolsByFile", symbolsByFile)
+      .handle("fileTriefact", fileTriefact)
+      .handle("fileSource", fileSource)
+      .handle("activity", activity)
   }),
 )

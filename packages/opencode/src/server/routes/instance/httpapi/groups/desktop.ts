@@ -17,6 +17,9 @@ export const DesktopPaths = {
   read: `${root}/graph/read`,
   trace: `${root}/graph/trace`,
   symbolsByFile: `${root}/graph/symbols-by-file`,
+  fileTriefact: `${root}/graph/file-triefact`,
+  fileSource: `${root}/graph/file-source`,
+  activity: `${root}/graph/activity`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -58,6 +61,16 @@ export const TracePayload = Schema.Struct({
 })
 
 export const SymbolsByFileQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  path: Schema.String,
+})
+
+export const FileTriefactQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  path: Schema.String,
+})
+
+export const FileSourceQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   path: Schema.String,
 })
@@ -206,6 +219,45 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.symbolsByFile",
           summary: "Symbols by file",
           description: "Return all symbols in a given source file.",
+        }),
+      ),
+    )
+    .add(
+      // File triefact — full triefact (front matter + ordered sections) for a source file.
+      HttpApiEndpoint.get("fileTriefact", DesktopPaths.fileTriefact, {
+        query: FileTriefactQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.fileTriefact",
+          summary: "File triefact",
+          description: "Return the full triefact (front matter + per-symbol sections) for a source file.",
+        }),
+      ),
+    )
+    .add(
+      // File source — raw source text for the editor's source view.
+      HttpApiEndpoint.get("fileSource", DesktopPaths.fileSource, {
+        query: FileSourceQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.fileSource",
+          summary: "File source",
+          description: "Return the raw source text for a file, for the editor source view.",
+        }),
+      ),
+    )
+    .add(
+      // Activity — live writer status + working-tree stale set (polled).
+      HttpApiEndpoint.get("activity", DesktopPaths.activity, {
+        query: WorkspaceRoutingQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.activity",
+          summary: "Activity",
+          description: "Return the live trie writer status and the working-tree stale set.",
         }),
       ),
     )
