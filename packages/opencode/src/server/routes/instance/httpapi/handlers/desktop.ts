@@ -36,63 +36,86 @@ function desktopEvent(type: string, properties: unknown): Sse.Event {
 function mapBusEvent(event: { type: string; properties: Record<string, unknown> }): Sse.Event | null {
   const { type, properties } = event
 
-  // Tool state transitions — the core of graph animation.
+  // Full part upsert — carries the whole part (text, reasoning, tool with its
+  // state transitions, file, patch). The desktop transcript upserts parts by id
+  // from this, and the graph choreography derives tool activity from tool parts.
   if (type === "message.part.updated") {
     const part = (properties as any).part
-    if (!part || part.type !== "tool") return null
-
-    const state = part.state
-    if (!state) return null
-
-    if (state.status === "running") {
-      return desktopEvent("desktop.tool.start", {
+    if (part)
+      return desktopEvent("desktop.part.updated", {
         sessionID: part.sessionID,
         messageID: part.messageID,
-        partID: part.id,
-        callID: part.callID,
-        tool: part.tool,
-        input: state.input ?? {},
-        time: state.time,
+        part,
       })
-    }
-
-    if (state.status === "completed" || state.status === "error") {
-      return desktopEvent("desktop.tool.done", {
-        sessionID: part.sessionID,
-        messageID: part.messageID,
-        partID: part.id,
-        callID: part.callID,
-        tool: part.tool,
-        input: state.input ?? {},
-        output: state.status === "completed" ? state.output : null,
-        error: state.status === "error" ? state.error : null,
-        time: state.time,
-      })
-    }
-
     return null
   }
 
-  // Streaming text deltas — feeds the response panel.
+  // Streaming deltas — split by field so chat text and reasoning stay distinct.
   if (type === "message.part.delta") {
-    return desktopEvent("desktop.text.delta", {
+    const field = (properties as any).field
+    const base = {
       sessionID: properties.sessionID,
       messageID: properties.messageID,
       partID: properties.partID,
       delta: properties.delta,
-    })
+    }
+    if (field === "text") return desktopEvent("desktop.text.delta", base)
+    if (field === "reasoning") return desktopEvent("desktop.reasoning.delta", base)
+    return null
   }
 
-  // Session status — drives input bar enable/disable.
+  // Full message-info upsert — cost, tokens, finish reason, error.
+  if (type === "message.updated") {
+    const info = (properties as any).info
+    if (info) return desktopEvent("desktop.message.updated", { sessionID: properties.sessionID, info })
+    return null
+  }
+
+  // Session status — drives running/idle/error in the chat + graph.
+  // opencode emits idle | retry | busy (never "running"/"error"); map busy ->
+  // running so the UI shows a turn in progress.
   if (type === "session.status") {
     const status = (properties as any).status
     if (!status) return null
+    const t = status.type === "busy" ? "running" : (status.type ?? "idle")
     return desktopEvent("desktop.session.status", {
       sessionID: properties.sessionID,
-      status: {
-        type: status.type ?? "idle",
-        ...(status.error ? { error: status.error } : {}),
-      },
+      status: { type: t, ...(status.error ? { error: status.error } : {}) },
+    })
+  }
+
+  // Session error — surfaced as a chat error (dropped by the old mapper).
+  if (type === "session.error") {
+    const error = (properties as any).error
+    return desktopEvent("desktop.session.status", {
+      sessionID: (properties as any).sessionID,
+      status: { type: "error", error: error?.data?.message ?? error?.message ?? "Agent error" },
+    })
+  }
+
+  // Permission requested — the agent is asking to run/edit; the desktop renders
+  // approve/deny inline on the originating tool row (joined via callID).
+  if (type === "permission.asked") {
+    const p = properties as any
+    return desktopEvent("desktop.permission.asked", {
+      id: p.id,
+      sessionID: p.sessionID,
+      permission: p.permission,
+      patterns: p.patterns,
+      metadata: p.metadata,
+      always: p.always,
+      callID: p.tool?.callID,
+      messageID: p.tool?.messageID,
+    })
+  }
+
+  // Permission resolved — dismiss the inline prompt across clients.
+  if (type === "permission.replied") {
+    const p = properties as any
+    return desktopEvent("desktop.permission.replied", {
+      sessionID: p.sessionID,
+      requestID: p.requestID,
+      reply: p.reply,
     })
   }
 
