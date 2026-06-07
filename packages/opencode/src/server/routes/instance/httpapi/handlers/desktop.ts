@@ -403,6 +403,28 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       return yield* Effect.tryPromise(() => callTrieTool(tools as any, "activity", {}))
     })
 
+    // -------------------------------------------------------------------
+    // Patch endpoints — proxy the trie patch MCP tools.
+    // -------------------------------------------------------------------
+    const patches = Effect.fn("DesktopHttpApi.patches")(function* () {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() => callTrieTool(tools as any, "patch_list", {}))
+    })
+
+    const patchDrop = Effect.fn("DesktopHttpApi.patchDrop")(function* (ctx: {
+      payload?: { qname?: string }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "patch_drop", ctx.payload?.qname ? { qname: ctx.payload.qname } : {}),
+      )
+    })
+
+    const patchApply = Effect.fn("DesktopHttpApi.patchApply")(function* () {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() => callTrieTool(tools as any, "patch_apply", {}))
+    })
+
     return handlers
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
@@ -417,5 +439,8 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handle("fileTriefact", fileTriefact)
       .handle("fileSource", fileSource)
       .handle("activity", activity)
+      .handle("patches", patches)
+      .handle("patchDrop", patchDrop)
+      .handle("patchApply", patchApply)
   }),
 )

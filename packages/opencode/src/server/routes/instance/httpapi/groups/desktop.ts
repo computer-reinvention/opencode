@@ -20,6 +20,9 @@ export const DesktopPaths = {
   fileTriefact: `${root}/graph/file-triefact`,
   fileSource: `${root}/graph/file-source`,
   activity: `${root}/graph/activity`,
+  patches: `${root}/graph/patches`,
+  patchDrop: `${root}/graph/patch-drop`,
+  patchApply: `${root}/graph/patch-apply`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -73,6 +76,10 @@ export const FileTriefactQuery = Schema.Struct({
 export const FileSourceQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   path: Schema.String,
+})
+
+export const PatchDropPayload = Schema.Struct({
+  qname: Schema.optional(Schema.String),
 })
 
 // Generic JSON response — trie returns arbitrary JSON objects.
@@ -258,6 +265,47 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.activity",
           summary: "Activity",
           description: "Return the live trie writer status and the working-tree stale set.",
+        }),
+      ),
+    )
+    .add(
+      // Patches — pending patches grouped by symbol (patch_list).
+      HttpApiEndpoint.get("patches", DesktopPaths.patches, {
+        query: WorkspaceRoutingQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patches",
+          summary: "Patches",
+          description: "Return all pending patches grouped by symbol.",
+        }),
+      ),
+    )
+    .add(
+      // Drop patches for a symbol (or all this session when qname omitted).
+      HttpApiEndpoint.post("patchDrop", DesktopPaths.patchDrop, {
+        query: WorkspaceRoutingQuery,
+        payload: PatchDropPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patchDrop",
+          summary: "Drop patches",
+          description: "Remove pending patches for a symbol, or all this session.",
+        }),
+      ),
+    )
+    .add(
+      // Apply all pending patches.
+      HttpApiEndpoint.post("patchApply", DesktopPaths.patchApply, {
+        query: WorkspaceRoutingQuery,
+        payload: [HttpApiSchema.NoContent, Schema.Struct({ session_note: Schema.optional(Schema.String) })],
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patchApply",
+          summary: "Apply patches",
+          description: "Apply all pending patches (merge, generate, cascade, commit).",
         }),
       ),
     )
