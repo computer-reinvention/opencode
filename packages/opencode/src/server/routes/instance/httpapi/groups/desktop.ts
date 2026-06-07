@@ -23,6 +23,7 @@ export const DesktopPaths = {
   patches: `${root}/graph/patches`,
   patchDrop: `${root}/graph/patch-drop`,
   patchApply: `${root}/graph/patch-apply`,
+  blastRadius: `${root}/graph/blast-radius`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -80,6 +81,11 @@ export const FileSourceQuery = Schema.Struct({
 
 export const PatchDropPayload = Schema.Struct({
   qname: Schema.optional(Schema.String),
+})
+
+export const BlastRadiusQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  qname: Schema.String,
 })
 
 // Generic JSON response — trie returns arbitrary JSON objects.
@@ -306,6 +312,19 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.patchApply",
           summary: "Apply patches",
           description: "Apply all pending patches (merge, generate, cascade, commit).",
+        }),
+      ),
+    )
+    .add(
+      // Blast radius — cascade impact of editing a symbol (real compute_cascade).
+      HttpApiEndpoint.get("blastRadius", DesktopPaths.blastRadius, {
+        query: BlastRadiusQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.blastRadius",
+          summary: "Blast radius",
+          description: "Cascade impact (with hop distances) of editing a symbol.",
         }),
       ),
     )

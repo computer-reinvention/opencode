@@ -425,6 +425,15 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       return yield* Effect.tryPromise(() => callTrieTool(tools as any, "patch_apply", {}))
     })
 
+    const blastRadius = Effect.fn("DesktopHttpApi.blastRadius")(function* (ctx: {
+      query: { qname: string }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "blast_radius", { qname: ctx.query.qname }),
+      )
+    })
+
     return handlers
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
@@ -442,5 +451,6 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handle("patches", patches)
       .handle("patchDrop", patchDrop)
       .handle("patchApply", patchApply)
+      .handle("blastRadius", blastRadius)
   }),
 )
