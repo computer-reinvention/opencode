@@ -21,9 +21,9 @@ import * as Tool from "../../src/tool/tool"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { provideInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
+import { cloneTrial, disposeClone, trialReady } from "./trie-fixture"
 
-const TRIAL = "/tmp/trie-trial"
-const ready = existsSync(`${TRIAL}/triefacts`)
+const ready = trialReady
 
 const layer = Layer.mergeAll(
   AppFileSystem.defaultLayer,
@@ -53,26 +53,28 @@ describe.skipIf(!ready)("trie scenario: structural staging", () => {
       const rename = yield* (yield* TrieRenameSymbolTool).init()
       const list = yield* (yield* TriePatchListTool).init()
       const drop = yield* (yield* TriePatchDropTool).init()
-      const run = <A, E, R>(e: Effect.Effect<A, E, R>) => e.pipe(provideInstance(TRIAL))
+      const dir = cloneTrial()
+      const run = <A, E, R>(e: Effect.Effect<A, E, R>) => e.pipe(provideInstance(dir))
+      try {
+        yield* run(create.execute({ qname: "calc/ops:divide", note: "return a / b" }, ctx))
+        yield* run(del.execute({ qname: "calc/ops:multiply" }, ctx))
+        yield* run(rename.execute({ qname: "calc/ops:add", new_name: "plus" }, ctx))
 
-      yield* run(drop.execute({ all: true }, ctx))
+        const listed = yield* run(list.execute({}, ctx))
+        // All three staged symbols should appear in the queue listing.
+        expect(listed.output).toContain("divide")
+        expect(listed.output).toContain("multiply")
+        expect(listed.output).toContain("add")
 
-      yield* run(create.execute({ qname: "calc/ops:divide", note: "return a / b" }, ctx))
-      yield* run(del.execute({ qname: "calc/ops:multiply" }, ctx))
-      yield* run(rename.execute({ qname: "calc/ops:add", new_name: "plus" }, ctx))
+        const dropped = yield* run(drop.execute({ all: true }, ctx))
+        expect(dropped.output.length).toBeGreaterThan(0)
 
-      const listed = yield* run(list.execute({}, ctx))
-      // All three staged symbols should appear in the queue listing.
-      expect(listed.output).toContain("divide")
-      expect(listed.output).toContain("multiply")
-      expect(listed.output).toContain("add")
-
-      const dropped = yield* run(drop.execute({ all: true }, ctx))
-      expect(dropped.output.length).toBeGreaterThan(0)
-
-      // Queue is empty again.
-      const after = yield* run(list.execute({}, ctx))
-      expect(after.output.toLowerCase()).toContain("no pending")
+        // Queue is empty again.
+        const after = yield* run(list.execute({}, ctx))
+        expect(after.output.toLowerCase()).toContain("no pending")
+      } finally {
+        disposeClone(dir)
+      }
     }),
     60_000,
   )

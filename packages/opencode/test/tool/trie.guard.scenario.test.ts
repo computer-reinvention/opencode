@@ -4,7 +4,7 @@
 // still allowing non-indexed files, new files, and force overrides.
 
 import { describe, expect } from "bun:test"
-import { existsSync } from "fs"
+import path from "path"
 import { Effect, Layer, Exit, Cause } from "effect"
 import { EditTool } from "../../src/tool/edit"
 import { WriteTool } from "../../src/tool/write"
@@ -20,9 +20,9 @@ import * as Tool from "../../src/tool/tool"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { provideInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
+import { cloneTrial, disposeClone, trialReady } from "./trie-fixture"
 
-const TRIAL = "/tmp/trie-trial"
-const ready = existsSync(`${TRIAL}/triefacts`)
+const ready = trialReady
 
 const layer = Layer.mergeAll(
   LSP.defaultLayer,
@@ -47,67 +47,66 @@ const ctx: Tool.Context = {
   ask: () => Effect.void,
 }
 
-function runIn<A, E, R>(self: Effect.Effect<A, E, R>) {
-  return self.pipe(provideInstance(TRIAL))
+// Each test runs against its own clone of the synced trial project so parallel
+// scenario files don't race on shared state.
+function withClone<A, E, R>(fn: (dir: string) => Effect.Effect<A, E, R>) {
+  return Effect.gen(function* () {
+    const dir = cloneTrial()
+    return yield* fn(dir).pipe(
+      provideInstance(dir),
+      Effect.ensuring(Effect.sync(() => disposeClone(dir))),
+    )
+  })
 }
 
 describe.skipIf(!ready)("trie scenario: edit guard", () => {
   it.live("fs_edit is REFUSED on an indexed .py file and points to the patch flow", () =>
-    Effect.gen(function* () {
-      const tool = yield* (yield* EditTool).init()
-      const exit = yield* runIn(
-        tool.execute(
-          { filePath: `${TRIAL}/calc/ops.py`, oldString: "a + b", newString: "a + b + 0" },
-          ctx,
-        ),
-      ).pipe(Effect.exit)
-      expect(Exit.isFailure(exit)).toBe(true)
-      const msg = Exit.isFailure(exit) ? String(Cause.squash(exit.cause)) : ""
-      expect(msg).toContain("trie-indexed")
-      expect(msg).toContain("trie_patch")
-    }),
+    withClone((dir) =>
+      Effect.gen(function* () {
+        const tool = yield* (yield* EditTool).init()
+        const exit = yield* tool
+          .execute({ filePath: path.join(dir, "calc/ops.py"), oldString: "a + b", newString: "a + b + 0" }, ctx)
+          .pipe(Effect.exit)
+        expect(Exit.isFailure(exit)).toBe(true)
+        const msg = Exit.isFailure(exit) ? String(Cause.squash(exit.cause)) : ""
+        expect(msg).toContain("trie-indexed")
+        expect(msg).toContain("trie_patch")
+      }),
+    ),
   )
 
   it.live("fs_edit with force=true bypasses the guard on an indexed file", () =>
-    Effect.gen(function* () {
-      const tool = yield* (yield* EditTool).init()
-      // add then immediately revert via two forced edits to leave the file pristine.
-      yield* runIn(
-        tool.execute(
-          { filePath: `${TRIAL}/calc/ops.py`, oldString: "a - b", newString: "a - b  # nudge", force: true },
+    withClone((dir) =>
+      Effect.gen(function* () {
+        const tool = yield* (yield* EditTool).init()
+        const res = yield* tool.execute(
+          { filePath: path.join(dir, "calc/ops.py"), oldString: "a - b", newString: "a - b  # nudge", force: true },
           ctx,
-        ),
-      )
-      const res = yield* runIn(
-        tool.execute(
-          { filePath: `${TRIAL}/calc/ops.py`, oldString: "a - b  # nudge", newString: "a - b", force: true },
-          ctx,
-        ),
-      )
-      expect(res.output).toContain("Edit applied")
-    }),
+        )
+        expect(res.output).toContain("Edit applied")
+      }),
+    ),
   )
 
   it.live("fs_edit is ALLOWED on a non-indexed file (README.md)", () =>
-    Effect.gen(function* () {
-      const fs = yield* AppFileSystem.Service
-      const p = `${TRIAL}/README.md`
-      yield* runIn(Effect.promise(() => Bun.write(p, "# trial\n\nhello\n")))
-      const tool = yield* (yield* EditTool).init()
-      const res = yield* runIn(tool.execute({ filePath: p, oldString: "hello", newString: "world" }, ctx))
-      expect(res.output).toContain("Edit applied")
-      yield* runIn(Effect.promise(() => Bun.write(p, "# trial\n")))
-      yield* fs.existsSafe(p) // touch service so it's used
-    }),
+    withClone((dir) =>
+      Effect.gen(function* () {
+        const p = path.join(dir, "README.md")
+        yield* Effect.promise(() => Bun.write(p, "# trial\n\nhello\n"))
+        const tool = yield* (yield* EditTool).init()
+        const res = yield* tool.execute({ filePath: p, oldString: "hello", newString: "world" }, ctx)
+        expect(res.output).toContain("Edit applied")
+      }),
+    ),
   )
 
   it.live("fs_write is ALLOWED for creating a NEW file", () =>
-    Effect.gen(function* () {
-      const tool = yield* (yield* WriteTool).init()
-      const p = `${TRIAL}/notes.txt`
-      const res = yield* runIn(tool.execute({ filePath: p, content: "scratch\n" }, ctx))
-      expect(res.output).toContain("Wrote file")
-      yield* runIn(Effect.promise(() => Bun.file(p).unlink()))
-    }),
+    withClone((dir) =>
+      Effect.gen(function* () {
+        const tool = yield* (yield* WriteTool).init()
+        const res = yield* tool.execute({ filePath: path.join(dir, "notes.txt"), content: "scratch\n" }, ctx)
+        expect(res.output).toContain("Wrote file")
+      }),
+    ),
   )
 })
