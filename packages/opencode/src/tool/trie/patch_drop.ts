@@ -1,7 +1,7 @@
 import { Schema, Effect } from "effect"
 import * as Tool from "../tool"
 import DESCRIPTION from "./patch_drop.txt"
-import { makeTrieRunner } from "./shared"
+import { makeTrieRunner, errText } from "./shared"
 
 export const Parameters = Schema.Struct({
   qname: Schema.optional(Schema.String).annotate({ description: "Drop patches for a specific symbol." }),
@@ -22,7 +22,7 @@ export const TriePatchDropTool = Tool.define(
           else if (args.qname) flags.push("--qname", args.qname)
           else flags.push("--session", ctx.sessionID)
           const r = yield* trie.run(flags, { TRIE_SESSION_ID: ctx.sessionID })
-          if (r.code !== 0) throw new Error(`trie patch drop failed (exit ${r.code}): ${r.stderr.trim() || "no stderr"}`)
+          if (r.code !== 0) throw new Error(`trie patch drop failed (exit ${r.code}): ${errText(r)}`)
           return { title: "drop", metadata: {}, output: r.stdout.trim() || "patches dropped" }
         }),
     }

@@ -1,7 +1,7 @@
 import { Schema, Effect } from "effect"
 import * as Tool from "../tool"
 import DESCRIPTION from "./create_symbol.txt"
-import { makeTrieRunner } from "./shared"
+import { makeTrieRunner, errText } from "./shared"
 
 export const Parameters = Schema.Struct({
   qname: Schema.String.annotate({ description: "Intended qualified name of the new symbol, e.g. 'pkg/mod:new_fn'." }),
@@ -23,7 +23,7 @@ export const TrieCreateSymbolTool = Tool.define(
           if (args.file) flags.push("--file", args.file)
           if (args.anchor) flags.push("--anchor", args.anchor)
           const r = yield* trie.run(flags, { TRIE_SESSION_ID: ctx.sessionID })
-          if (r.code !== 0) throw new Error(`trie create-symbol failed (exit ${r.code}): ${r.stderr.trim() || "no stderr"}`)
+          if (r.code !== 0) throw new Error(`trie create-symbol failed (exit ${r.code}): ${errText(r)}`)
           return { title: args.qname, metadata: {}, output: r.stdout.trim() || "create staged" }
         }),
     }

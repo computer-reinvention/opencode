@@ -155,6 +155,14 @@ export const makeTrieProbes = Effect.fn("trie.makeTrieProbes")(function* () {
   return { available, synced }
 })
 
+// Pick the most useful failure text from a trie result. trie writes its
+// structured `error: ...` line to stdout (not stderr), so on a non-zero exit
+// the actionable message is usually on stdout; fall back to stderr only when
+// stdout is empty (e.g. a hard crash whose traceback lands on stderr).
+export function errText(r: TrieResult): string {
+  return r.stdout.trim() || r.stderr.trim() || "no output"
+}
+
 // trie qnames look like `path/to/file:Name` or `path/to/file:Class.method`.
 export function looksLikeQname(s: string): boolean {
   if (!s.includes(":")) return false

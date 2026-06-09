@@ -1,7 +1,7 @@
 import { Schema, Effect } from "effect"
 import * as Tool from "../tool"
 import DESCRIPTION from "./rename_symbol.txt"
-import { makeTrieRunner } from "./shared"
+import { makeTrieRunner, errText } from "./shared"
 
 export const Parameters = Schema.Struct({
   qname: Schema.String.annotate({ description: "Qualified name of the symbol to rename." }),
@@ -18,7 +18,7 @@ export const TrieRenameSymbolTool = Tool.define(
       execute: (args: Schema.Schema.Type<typeof Parameters>, ctx: Tool.Context) =>
         Effect.gen(function* () {
           const r = yield* trie.run(["patch", "rename-symbol", args.qname, args.new_name], { TRIE_SESSION_ID: ctx.sessionID })
-          if (r.code !== 0) throw new Error(`trie rename-symbol failed (exit ${r.code}): ${r.stderr.trim() || "no stderr"}`)
+          if (r.code !== 0) throw new Error(`trie rename-symbol failed (exit ${r.code}): ${errText(r)}`)
           return { title: `${args.qname} -> ${args.new_name}`, metadata: {}, output: r.stdout.trim() || "rename staged" }
         }),
     }
