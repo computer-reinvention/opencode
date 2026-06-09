@@ -13,6 +13,9 @@ import { TrieGrepTool } from "../../src/tool/trie/grep"
 import { TrieReadTool } from "../../src/tool/trie/read"
 import { TrieTraceTool } from "../../src/tool/trie/trace"
 import { TriePatchListTool } from "../../src/tool/trie/patch_list"
+import { TrieFindTool } from "../../src/tool/trie/find"
+import { TrieGrepStrTool } from "../../src/tool/trie/grep_str"
+import { TrieBlastRadiusTool } from "../../src/tool/trie/blast_radius"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
 import { Truncate } from "@/tool/truncate"
@@ -21,6 +24,7 @@ import * as Tool from "../../src/tool/tool"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { provideInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
+import { cloneTrial, disposeClone } from "./trie-fixture"
 
 const TRIAL = "/tmp/trie-trial"
 const ready = existsSync(`${TRIAL}/triefacts`)
@@ -87,6 +91,39 @@ describe.skipIf(!ready)("trie scenario: navigation", () => {
       const tool = yield* (yield* TriePatchListTool).init()
       const res = yield* runIn(TRIAL, tool.execute({}, ctx))
       expect(res.output.length).toBeGreaterThan(0)
+    }),
+  )
+
+  // EXT-2: filename glob search (retires fs_glob for indexed lookups).
+  it.live("trie_find locates files by glob", () =>
+    Effect.gen(function* () {
+      const tool = yield* (yield* TrieFindTool).init()
+      const res = yield* runIn(TRIAL, tool.execute({ pattern: "**/*.py" }, ctx))
+      expect(res.output).toContain("calc/ops.py")
+    }),
+  )
+
+  // EXT-1: whole-repo text search (retires fs_grep for non-indexed files).
+  it.live("trie_grep_str --all-files finds text in a non-indexed file", () =>
+    Effect.gen(function* () {
+      const dir = cloneTrial()
+      try {
+        yield* Effect.promise(() => Bun.write(`${dir}/config.ini`, "[section]\nMARKER_XYZ = 1\n"))
+        const tool = yield* (yield* TrieGrepStrTool).init()
+        const res = yield* tool.execute({ regexp: "MARKER_XYZ", all_files: true }, ctx).pipe(provideInstance(dir))
+        expect(res.output).toContain("config.ini")
+      } finally {
+        disposeClone(dir)
+      }
+    }),
+  )
+
+  // EXT-11: blast radius via CLI-backed tool.
+  it.live("trie_blast_radius reports the cascade for a symbol", () =>
+    Effect.gen(function* () {
+      const tool = yield* (yield* TrieBlastRadiusTool).init()
+      const res = yield* runIn(TRIAL, tool.execute({ qname: "calc/ops:add" }, ctx))
+      expect(res.output).toContain("calc/app:total")
     }),
   )
 })

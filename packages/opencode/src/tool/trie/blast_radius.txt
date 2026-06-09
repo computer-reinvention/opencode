@@ -1,0 +1,1 @@
+Compute the cascade blast radius of editing a symbol: every symbol whose triefact/source would be regenerated if it changed, with each one's BFS hop distance from the seed. Pure graph math, no LLM. Use before a risky delete/rename/modify to gauge impact.

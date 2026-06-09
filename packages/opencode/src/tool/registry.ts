@@ -33,6 +33,7 @@ import { TrieGrepTool } from "./trie/grep"
 import { TrieReadTool } from "./trie/read"
 import { TrieTraceTool } from "./trie/trace"
 import { TrieGrepStrTool } from "./trie/grep_str"
+import { TrieFindTool } from "./trie/find"
 import { TrieGrepEntryPointsTool } from "./trie/grep_entry_points"
 import { TrieGrepSymbolTool } from "./trie/grep_symbol"
 import { TrieGrepSymbolNeighboursTool } from "./trie/grep_symbol_neighbours"
@@ -48,6 +49,7 @@ import { TriePatchListTool } from "./trie/patch_list"
 import { TriePatchDropTool } from "./trie/patch_drop"
 import { TriePatchPreviewTool } from "./trie/patch_preview"
 import { TriePatchApplyTool } from "./trie/patch_apply"
+import { TrieBlastRadiusTool } from "./trie/blast_radius"
 import { Glob } from "@opencode-ai/core/util/glob"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -158,6 +160,7 @@ export const layer: Layer.Layer<
     const trieRead = yield* TrieReadTool
     const trieTrace = yield* TrieTraceTool
     const trieGrepStr = yield* TrieGrepStrTool
+    const trieFind = yield* TrieFindTool
     const trieGrepEntry = yield* TrieGrepEntryPointsTool
     const trieGrepSymbol = yield* TrieGrepSymbolTool
     const trieGrepSymbolN = yield* TrieGrepSymbolNeighboursTool
@@ -173,6 +176,7 @@ export const layer: Layer.Layer<
     const triePatchDrop = yield* TriePatchDropTool
     const triePatchPreview = yield* TriePatchPreviewTool
     const triePatchApply = yield* TriePatchApplyTool
+    const trieBlastRadius = yield* TrieBlastRadiusTool
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -285,6 +289,7 @@ export const layer: Layer.Layer<
           trie_read: Tool.init(trieRead),
           trie_trace: Tool.init(trieTrace),
           trie_grep_str: Tool.init(trieGrepStr),
+          trie_find: Tool.init(trieFind),
           trie_grep_entry_points: Tool.init(trieGrepEntry),
           trie_grep_symbol: Tool.init(trieGrepSymbol),
           trie_grep_symbol_neighbours: Tool.init(trieGrepSymbolN),
@@ -300,6 +305,7 @@ export const layer: Layer.Layer<
           trie_patch_drop: Tool.init(triePatchDrop),
           trie_patch_preview: Tool.init(triePatchPreview),
           trie_patch_apply: Tool.init(triePatchApply),
+          trie_blast_radius: Tool.init(trieBlastRadius),
         })
 
         return {
@@ -313,6 +319,7 @@ export const layer: Layer.Layer<
             tool.trie_read,
             tool.trie_trace,
             tool.trie_grep_str,
+            tool.trie_find,
             tool.trie_grep_entry_points,
             tool.trie_grep_symbol,
             tool.trie_grep_symbol_neighbours,
@@ -328,6 +335,7 @@ export const layer: Layer.Layer<
             tool.trie_patch_drop,
             tool.trie_patch_preview,
             tool.trie_patch_apply,
+            tool.trie_blast_radius,
             tool.shell,
             tool.read,
             tool.glob,

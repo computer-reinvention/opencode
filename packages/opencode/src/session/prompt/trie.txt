@@ -15,10 +15,17 @@ where trie cannot help (see "When trie does NOT apply" below).
 - `trie_trace` — walk the call graph (callers = blast radius, callees = what it
   does). Prefer this over repeated reads to traverse topology.
 - `trie_grep_entry_points` — orient in an unfamiliar area by topic.
-- `trie_grep_str` — regex over indexed source bodies, attributed to symbols.
+- `trie_grep_str` — regex over source bodies, attributed to symbols. Pass
+  `all_files: true` to search the WHOLE repo, including non-indexed files
+  (TS/JS, configs, docs, lockfiles) — out-of-scope hits come back as
+  file:line:text.
+- `trie_find` — find files by name/path glob (`**/*.ts`, `Dockerfile`). Covers
+  filename search across the whole tree.
 - `trie_grep_symbol` / `trie_grep_symbol_neighbours` — fuzzy name lookup.
 - `trie_explain_symbol` / `trie_explain_symbol_refs` — deep prose narratives.
 - `trie_trace_flow` / `trie_explain_flow` — call chains between two symbols.
+- `trie_blast_radius` — every symbol that regenerates if you edit one (with hop
+  distance). Use before a risky delete/rename/modify.
 
 Qnames are `path/to/file:Name` or `path/to/file:Class.method` (drop the
 extension, forward slashes). Round-trip qnames between tools without rewriting.
@@ -43,8 +50,10 @@ pass `force: true` only for the cases below.
 ## When trie does NOT apply — fall back to the backup fs_* tools
 
 - Files trie doesn't index: non-Python code (TS/JS/Go), configs, JSON/YAML,
-  markdown, lockfiles, generated files. Use `fs_grep` / `fs_read` / `fs_glob`
-  to search/read and `fs_edit` / `fs_write` to change them.
+  markdown, lockfiles, generated files. You can still SEARCH them with trie —
+  `trie_grep_str` with `all_files: true` (text) and `trie_find` (filenames) —
+  and READ them with `trie_read` (pass a file path). But to CHANGE them, use
+  `fs_edit`; to create them, use `fs_write`.
 - Creating brand-new files of any kind → `fs_write`.
 - Images / PDFs / binary files, and directory listings → `fs_read`.
 - Sub-symbol edits (a single line) or non-symbol regions (module-level
