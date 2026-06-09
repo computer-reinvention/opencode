@@ -1,0 +1,1 @@
+Fuzzy symbol-name lookup, typo-tolerant. Returns the best-matching symbol plus similar alternatives. Use when you have a rough name but not the exact qname.

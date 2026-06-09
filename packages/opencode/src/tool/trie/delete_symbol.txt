@@ -1,0 +1,1 @@
+Stage deletion of an existing symbol. trie auto-cascades to callers (rewriting or removing call sites) and cleans up imports. Applied by trie_patch_apply. Use trie_blast_radius first to see what depends on it.

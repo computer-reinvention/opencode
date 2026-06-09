@@ -1,0 +1,7 @@
+Search for code symbols (and source-body text) via trie — the PRIMARY code search tool. Replaces stock regex grep for code.
+
+Searches trie's indexed symbol graph by predicate: name substring, kind, scope prefix, public-only, and centrality ranking. Returns signatures, one-liners, and call-graph metrics (inbound/outbound counts). When the pattern matches no symbol name, trie falls back to ripgrep over indexed source bodies and attributes each hit to its enclosing symbol.
+
+Use this for every code-side search: symbol names, "where is X defined", structural filters, finding hubs. To orient in an unfamiliar codebase, pass rank_by="inbound_count" with public_only=true.
+
+Limitation: trie indexes only files in its configured scope (Python by default). For non-indexed files (configs, docs, TS/JS, lockfiles), use the backup fs_grep tool.

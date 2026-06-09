@@ -1,0 +1,59 @@
+# Working in a trie-indexed project
+
+This project has trie installed: it indexes source into a symbol graph with
+prose, and exposes a native tool suite (the `trie_*` tools) that is your
+PRIMARY interface for understanding and editing code. The stock file tools
+(grep, read, glob, edit, write) are demoted to BACKUP (`fs_*`) — use them only
+where trie cannot help (see "When trie does NOT apply" below).
+
+## Navigation — prefer trie over raw file reads/greps
+
+- `trie_grep` — find symbols by name/kind/scope, with call-graph metrics. Your
+  default for every code search. For orientation, rank by inbound_count.
+- `trie_read` — a symbol's prose + callers/callees (pass a qname like
+  `pkg/mod:Name`), or line-numbered source (pass a file path).
+- `trie_trace` — walk the call graph (callers = blast radius, callees = what it
+  does). Prefer this over repeated reads to traverse topology.
+- `trie_grep_entry_points` — orient in an unfamiliar area by topic.
+- `trie_grep_str` — regex over indexed source bodies, attributed to symbols.
+- `trie_grep_symbol` / `trie_grep_symbol_neighbours` — fuzzy name lookup.
+- `trie_explain_symbol` / `trie_explain_symbol_refs` — deep prose narratives.
+- `trie_trace_flow` / `trie_explain_flow` — call chains between two symbols.
+
+Qnames are `path/to/file:Name` or `path/to/file:Class.method` (drop the
+extension, forward slashes). Round-trip qnames between tools without rewriting.
+
+## Editing — use the patch pipeline, do not hand-edit indexed code
+
+Record intent against symbols and let trie generate + cascade the change:
+
+1. `trie_patch(qname, note)` to modify a function/method/class body.
+   `trie_create_symbol` / `trie_delete_symbol` / `trie_rename_symbol` for
+   structural changes. Stage as many as you need; they accumulate.
+2. `trie_patch_preview` to see the blast radius (cascade neighbours).
+3. `trie_patch_apply(note)` — the `note` is the single unifying intent. The
+   pipeline regenerates source, cascades to callers, fixes imports, runs
+   compile + LSP, and commits atomically.
+
+The pipeline owns well-formedness (it compiles and is LSP-clean). You own
+CORRECTNESS — run the project's tests after applying. The backup `fs_edit` /
+`fs_write` tools REFUSE to touch trie-indexed code files and point you here;
+pass `force: true` only for the cases below.
+
+## When trie does NOT apply — fall back to the backup fs_* tools
+
+- Files trie doesn't index: non-Python code (TS/JS/Go), configs, JSON/YAML,
+  markdown, lockfiles, generated files. Use `fs_grep` / `fs_read` / `fs_glob`
+  to search/read and `fs_edit` / `fs_write` to change them.
+- Creating brand-new files of any kind → `fs_write`.
+- Images / PDFs / binary files, and directory listings → `fs_read`.
+- Sub-symbol edits (a single line) or non-symbol regions (module-level
+  constants, file headers, `if __name__ == ...`) the patch pipeline can't
+  express → `fs_edit` with `force: true`.
+- When `trie_patch_apply` returns blocking unresolved items it cannot resolve
+  (e.g. dynamic dispatch), resolve them manually, often with `fs_edit --force`.
+- When the graph is stale (you just created/changed files outside the pipeline)
+  trie may miss them until the next refresh.
+
+Default instinct: reach for a `trie_*` tool first for any code task; drop to
+`fs_*` only when one of the above clearly applies.

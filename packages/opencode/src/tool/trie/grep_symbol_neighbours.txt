@@ -1,0 +1,1 @@
+Fuzzy symbol lookup plus the match's immediate callers and callees in one round trip. Use to orient around an uncertain target without a follow-up trie_read.

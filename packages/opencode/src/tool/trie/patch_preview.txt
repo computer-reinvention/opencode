@@ -1,0 +1,1 @@
+Show what trie_patch_apply would do without executing it: the patched symbols plus the cascade neighbours that would be regenerated. Read-only — safe in plan mode. Review this before applying.

@@ -15,6 +15,9 @@ import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"
 import { Skill } from "@/skill"
+import { AppFileSystem } from "@opencode-ai/core/filesystem"
+import { makeTrieProbes } from "@/tool/trie/shared"
+import PROMPT_TRIE from "./prompt/trie.txt"
 
 export function provider(model: Provider.Model) {
   if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
@@ -43,10 +46,15 @@ export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const skill = yield* Skill.Service
+    yield* AppFileSystem.Service
+    const probes = yield* makeTrieProbes()
 
     return Service.of({
       environment: Effect.fn("SystemPrompt.environment")(function* (model: Provider.Model) {
         const ctx = yield* InstanceState.context
+        // Inject the trie usage guide only when the project is trie-indexed,
+        // so non-trie projects behave like stock opencode.
+        const trieAvailable = yield* probes.available()
         return [
           [
             `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
@@ -59,6 +67,7 @@ export const layer = Layer.effect(
             `  Today's date: ${new Date().toDateString()}`,
             `</env>`,
           ].join("\n"),
+          ...(trieAvailable ? [PROMPT_TRIE] : []),
         ]
       }),
 
@@ -79,6 +88,9 @@ export const layer = Layer.effect(
   }),
 )
 
-export const defaultLayer = layer.pipe(Layer.provide(Skill.defaultLayer))
+export const defaultLayer = layer.pipe(
+  Layer.provide(Skill.defaultLayer),
+  Layer.provide(AppFileSystem.defaultLayer),
+)
 
 export * as SystemPrompt from "./system"

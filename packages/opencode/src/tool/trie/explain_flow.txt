@@ -1,0 +1,1 @@
+Find the call chain between two symbols and narrate each step with its prose. Use when you want the story of the execution flow from entry to target, not just that a path exists.

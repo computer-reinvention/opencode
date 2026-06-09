@@ -1,0 +1,1 @@
+Find call chain(s) between two symbols, following callee edges. Returns the shortest path(s), or says clearly when none exists within the search depth. Use to verify one symbol can reach another, or to find the execution path from an entry point to a deep utility.

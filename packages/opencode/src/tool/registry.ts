@@ -29,6 +29,25 @@ import * as Log from "@opencode-ai/core/util/log"
 import { LspTool } from "./lsp"
 import * as Truncate from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
+import { TrieGrepTool } from "./trie/grep"
+import { TrieReadTool } from "./trie/read"
+import { TrieTraceTool } from "./trie/trace"
+import { TrieGrepStrTool } from "./trie/grep_str"
+import { TrieGrepEntryPointsTool } from "./trie/grep_entry_points"
+import { TrieGrepSymbolTool } from "./trie/grep_symbol"
+import { TrieGrepSymbolNeighboursTool } from "./trie/grep_symbol_neighbours"
+import { TrieExplainSymbolTool } from "./trie/explain_symbol"
+import { TrieExplainSymbolRefsTool } from "./trie/explain_symbol_refs"
+import { TrieTraceFlowTool } from "./trie/trace_flow"
+import { TrieExplainFlowTool } from "./trie/explain_flow"
+import { TriePatchTool } from "./trie/patch"
+import { TrieCreateSymbolTool } from "./trie/create_symbol"
+import { TrieDeleteSymbolTool } from "./trie/delete_symbol"
+import { TrieRenameSymbolTool } from "./trie/rename_symbol"
+import { TriePatchListTool } from "./trie/patch_list"
+import { TriePatchDropTool } from "./trie/patch_drop"
+import { TriePatchPreviewTool } from "./trie/patch_preview"
+import { TriePatchApplyTool } from "./trie/patch_apply"
 import { Glob } from "@opencode-ai/core/util/glob"
 import path from "path"
 import { pathToFileURL } from "url"
@@ -133,6 +152,27 @@ export const layer: Layer.Layer<
     const patchtool = yield* ApplyPatchTool
     const skilltool = yield* SkillTool
     const agent = yield* Agent.Service
+
+    // trie-native tool suite — the primary code navigation + editing surface.
+    const trieGrep = yield* TrieGrepTool
+    const trieRead = yield* TrieReadTool
+    const trieTrace = yield* TrieTraceTool
+    const trieGrepStr = yield* TrieGrepStrTool
+    const trieGrepEntry = yield* TrieGrepEntryPointsTool
+    const trieGrepSymbol = yield* TrieGrepSymbolTool
+    const trieGrepSymbolN = yield* TrieGrepSymbolNeighboursTool
+    const trieExplainSymbol = yield* TrieExplainSymbolTool
+    const trieExplainSymbolRefs = yield* TrieExplainSymbolRefsTool
+    const trieTraceFlow = yield* TrieTraceFlowTool
+    const trieExplainFlow = yield* TrieExplainFlowTool
+    const triePatch = yield* TriePatchTool
+    const trieCreateSymbol = yield* TrieCreateSymbolTool
+    const trieDeleteSymbol = yield* TrieDeleteSymbolTool
+    const trieRenameSymbol = yield* TrieRenameSymbolTool
+    const triePatchList = yield* TriePatchListTool
+    const triePatchDrop = yield* TriePatchDropTool
+    const triePatchPreview = yield* TriePatchPreviewTool
+    const triePatchApply = yield* TriePatchApplyTool
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -241,6 +281,25 @@ export const layer: Layer.Layer<
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
+          trie_grep: Tool.init(trieGrep),
+          trie_read: Tool.init(trieRead),
+          trie_trace: Tool.init(trieTrace),
+          trie_grep_str: Tool.init(trieGrepStr),
+          trie_grep_entry_points: Tool.init(trieGrepEntry),
+          trie_grep_symbol: Tool.init(trieGrepSymbol),
+          trie_grep_symbol_neighbours: Tool.init(trieGrepSymbolN),
+          trie_explain_symbol: Tool.init(trieExplainSymbol),
+          trie_explain_symbol_refs: Tool.init(trieExplainSymbolRefs),
+          trie_trace_flow: Tool.init(trieTraceFlow),
+          trie_explain_flow: Tool.init(trieExplainFlow),
+          trie_patch: Tool.init(triePatch),
+          trie_create_symbol: Tool.init(trieCreateSymbol),
+          trie_delete_symbol: Tool.init(trieDeleteSymbol),
+          trie_rename_symbol: Tool.init(trieRenameSymbol),
+          trie_patch_list: Tool.init(triePatchList),
+          trie_patch_drop: Tool.init(triePatchDrop),
+          trie_patch_preview: Tool.init(triePatchPreview),
+          trie_patch_apply: Tool.init(triePatchApply),
         })
 
         return {
@@ -248,6 +307,27 @@ export const layer: Layer.Layer<
           builtin: [
             tool.invalid,
             ...(questionEnabled ? [tool.question] : []),
+            // trie-native suite first: this is the primary navigation + editing
+            // surface. The stock file tools below are demoted to backup (fs_*).
+            tool.trie_grep,
+            tool.trie_read,
+            tool.trie_trace,
+            tool.trie_grep_str,
+            tool.trie_grep_entry_points,
+            tool.trie_grep_symbol,
+            tool.trie_grep_symbol_neighbours,
+            tool.trie_explain_symbol,
+            tool.trie_explain_symbol_refs,
+            tool.trie_trace_flow,
+            tool.trie_explain_flow,
+            tool.trie_patch,
+            tool.trie_create_symbol,
+            tool.trie_delete_symbol,
+            tool.trie_rename_symbol,
+            tool.trie_patch_list,
+            tool.trie_patch_drop,
+            tool.trie_patch_preview,
+            tool.trie_patch_apply,
             tool.shell,
             tool.read,
             tool.glob,

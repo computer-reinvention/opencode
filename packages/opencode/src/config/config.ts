@@ -298,6 +298,10 @@ export const Info = Schema.Struct({
       continue_loop_on_deny: Schema.optional(Schema.Boolean).annotate({
         description: "Continue the agent loop when a tool call is denied",
       }),
+      trie_edit_guard: Schema.optional(Schema.Boolean).annotate({
+        description:
+          "When true (default), the backup edit/write tools refuse to modify trie-indexed code files and steer the agent to the trie patch pipeline. Set false to disable the guard.",
+      }),
       mcp_timeout: Schema.optional(PositiveInt).annotate({
         description: "Timeout in milliseconds for model context protocol (MCP) requests",
       }),

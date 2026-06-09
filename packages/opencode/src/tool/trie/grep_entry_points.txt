@@ -1,0 +1,1 @@
+Find architectural entry points: high-inbound public symbols whose prose matches a topic. The first call to make when orienting in an unfamiliar codebase ("authentication", "config loading", "error handling").
