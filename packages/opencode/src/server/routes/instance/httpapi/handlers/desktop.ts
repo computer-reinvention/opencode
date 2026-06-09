@@ -434,6 +434,44 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       )
     })
 
+    // -------------------------------------------------------------------
+    // AGM (Attention Gravity Map) — proxy the trie attention MCP tools.
+    // -------------------------------------------------------------------
+    const attention = Effect.fn("DesktopHttpApi.attention")(function* (ctx: {
+      query: { since?: number }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "attention", { since: ctx.query.since ?? 0 }),
+      )
+    })
+
+    const recordAttention = Effect.fn("DesktopHttpApi.recordAttention")(function* (ctx: {
+      payload: { type: string; qname: string; investigation_id?: string }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "record_attention_event", {
+          type: ctx.payload.type,
+          qname: ctx.payload.qname,
+          investigation_id: ctx.payload.investigation_id ?? "",
+        }),
+      )
+    })
+
+    const setInvestigation = Effect.fn("DesktopHttpApi.setInvestigation")(function* (ctx: {
+      payload: { label: string; status?: string; investigation_id?: string }
+    }) {
+      const tools = yield* mcp.tools()
+      return yield* Effect.tryPromise(() =>
+        callTrieTool(tools as any, "set_investigation", {
+          label: ctx.payload.label,
+          status: ctx.payload.status ?? "active",
+          investigation_id: ctx.payload.investigation_id ?? "",
+        }),
+      )
+    })
+
     return handlers
       .handleRaw("event", eventHandler)
       .handle("session", sessionCreate)
@@ -452,5 +490,8 @@ export const desktopHandlers = HttpApiBuilder.group(DesktopApi, "desktop", (hand
       .handle("patchDrop", patchDrop)
       .handle("patchApply", patchApply)
       .handle("blastRadius", blastRadius)
+      .handle("attention", attention)
+      .handle("recordAttention", recordAttention)
+      .handle("setInvestigation", setInvestigation)
   }),
 )

@@ -24,6 +24,9 @@ export const DesktopPaths = {
   patchDrop: `${root}/graph/patch-drop`,
   patchApply: `${root}/graph/patch-apply`,
   blastRadius: `${root}/graph/blast-radius`,
+  attention: `${root}/graph/attention`,
+  recordAttention: `${root}/graph/record-attention`,
+  setInvestigation: `${root}/graph/set-investigation`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -86,6 +89,24 @@ export const PatchDropPayload = Schema.Struct({
 export const BlastRadiusQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   qname: Schema.String,
+})
+
+// AGM (Attention Gravity Map) — capture + read + investigation declaration.
+export const AttentionQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  since: Schema.optional(Schema.NumberFromString),
+})
+
+export const RecordAttentionPayload = Schema.Struct({
+  type: Schema.String,
+  qname: Schema.String,
+  investigation_id: Schema.optional(Schema.String),
+})
+
+export const SetInvestigationPayload = Schema.Struct({
+  label: Schema.String,
+  status: Schema.optional(Schema.String),
+  investigation_id: Schema.optional(Schema.String),
 })
 
 // Generic JSON response — trie returns arbitrary JSON objects.
@@ -325,6 +346,48 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.blastRadius",
           summary: "Blast radius",
           description: "Cascade impact (with hop distances) of editing a symbol.",
+        }),
+      ),
+    )
+    .add(
+      // AGM attention read — compressed event log + constant tables for the
+      // desktop to hydrate/replay its live attention model.
+      HttpApiEndpoint.get("attention", DesktopPaths.attention, {
+        query: AttentionQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.attention",
+          summary: "AGM attention",
+          description: "Return recent attention events + weight/edge/synthetic tables.",
+        }),
+      ),
+    )
+    .add(
+      // AGM attention capture — record one attention event (durable side).
+      HttpApiEndpoint.post("recordAttention", DesktopPaths.recordAttention, {
+        query: WorkspaceRoutingQuery,
+        payload: RecordAttentionPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.recordAttention",
+          summary: "Record AGM attention event",
+          description: "Persist one attention event (grep/read/trace/write) on a target.",
+        }),
+      ),
+    )
+    .add(
+      // AGM investigation declaration — explicit task boundary.
+      HttpApiEndpoint.post("setInvestigation", DesktopPaths.setInvestigation, {
+        query: WorkspaceRoutingQuery,
+        payload: SetInvestigationPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.setInvestigation",
+          summary: "Set AGM investigation",
+          description: "Declare or update the current investigation (open/resolve/abandon).",
         }),
       ),
     )
