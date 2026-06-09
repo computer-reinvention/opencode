@@ -43,6 +43,26 @@
 
 ---
 
+## ⚡ trie-native fork
+
+> This is a fork of opencode that is **trie-native**: it ships [trie](https://github.com/computer-reinvention/trie)'s symbol-graph tools as the default toolset and treats opencode's stock file tools as backup.
+
+In a project that has trie installed (a `trie.toml` at the root with a synced graph), this build changes the agent's defaults so it works against trie's prose/symbol graph instead of grepping raw text:
+
+- **Navigation is trie-first.** The agent's primary tools are `trie_grep`, `trie_read`, `trie_trace`, `trie_grep_entry_points`, `trie_grep_symbol`, `trie_grep_symbol_neighbours`, `trie_grep_str`, `trie_explain_symbol`, `trie_explain_symbol_refs`, `trie_trace_flow`, and `trie_explain_flow`. They search an indexed symbol graph and return signatures, prose, and call-graph context — not just line matches.
+- **Editing goes through the patch pipeline.** Code changes are made by recording intent against symbols — `trie_patch` (modify), `trie_create_symbol` / `trie_delete_symbol` / `trie_rename_symbol` (structural) — then `trie_patch_preview` and `trie_patch_apply`. The pipeline regenerates source, cascades the change to callers, fixes imports, runs compile + LSP, and commits atomically.
+- **Backup tools are demoted.** The stock `grep` / `read` / `glob` / `edit` / `write` tools are framed as backups (`fs_*`) for the cases trie does not cover: non-indexed files (non-Python code, configs, docs, lockfiles), brand-new files, images/PDFs, directory listings, and sub-symbol / non-symbol-region edits.
+- **An edit guard keeps the agent honest.** `edit` / `write` refuse to hand-edit a trie-indexed code file and point the agent to the patch pipeline. A `force: true` argument is the documented escape hatch for sub-symbol or non-symbol-region edits the pipeline can't express, and `experimental.trie_edit_guard: false` disables the guard entirely.
+- **The system prompt teaches trie.** When trie is available, a usage guide is injected into every model family's system prompt covering the tools, the patch workflow, and — crucially — **when trie does NOT apply** so the agent falls back to the backup tools cleanly. The `explore` subagent and plan mode are trie-first too (plan mode allows only read-only trie tools + `trie_patch_preview`).
+
+In projects **without** trie, this build behaves exactly like upstream opencode: the trie guidance is not injected and the guard never fires.
+
+Implementation lives under `packages/opencode/src/tool/trie/` (the native tool suite + `shared.ts` runner/probes and `guard.ts`), with the registry wiring in `packages/opencode/src/tool/registry.ts`, the prompt in `packages/opencode/src/session/prompt/trie.txt`, and scenario coverage in `packages/opencode/test/tool/trie.*.scenario.test.ts`. The capability gaps that keep the backup tools necessary are tracked in trie's [`docs/core/trie-tool-extensions.md`](https://github.com/computer-reinvention/trie/blob/main/docs/core/trie-tool-extensions.md).
+
+The rest of this README documents upstream opencode.
+
+---
+
 ### Installation
 
 ```bash
