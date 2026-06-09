@@ -103,9 +103,17 @@ export const makeTrieRunner = Effect.fn("trie.makeTrieRunner")(function* () {
 export const makeTrieProbes = Effect.fn("trie.makeTrieProbes")(function* () {
   const fs = yield* AppFileSystem.Service
 
+  // Resolve symlinks so comparisons are stable. On macOS the instance dir is
+  // realpath'd to /private/tmp/... while an agent-supplied path may still be
+  // /tmp/...; without this the prefix check below silently fails and the guard
+  // never fires. `AppFileSystem.resolve` runs realpathSync on every platform
+  // (normalizePath is a no-op off Windows) with an ENOENT fallback, so it's
+  // safe for both existing and not-yet-created paths.
+  const real = (p: string): string => AppFileSystem.resolve(p)
+
   const projectRoot = (dir: string): Effect.Effect<string | null> =>
     Effect.gen(function* () {
-      let cur = dir
+      let cur = real(dir)
       for (;;) {
         const exists = yield* fs.exists(path.join(cur, "trie.toml")).pipe(Effect.orElseSucceed(() => false))
         if (exists) return cur
@@ -129,7 +137,10 @@ export const makeTrieProbes = Effect.fn("trie.makeTrieProbes")(function* () {
   const synced = (filePath: string): Effect.Effect<boolean> =>
     Effect.gen(function* () {
       const ctx = yield* InstanceState.context
-      const abs = path.isAbsolute(filePath) ? path.normalize(filePath) : path.join(ctx.directory, filePath)
+      const raw = path.isAbsolute(filePath) ? path.normalize(filePath) : path.join(ctx.directory, filePath)
+      // Realpath the parent dir (which exists even when the file is new) and
+      // rejoin the basename, so symlinked prefixes line up with `root`.
+      const abs = path.join(real(path.dirname(raw)), path.basename(raw))
       const root = yield* projectRoot(ctx.directory)
       if (root === null) return false
       const prefix = root.endsWith(path.sep) ? root : root + path.sep

@@ -26,11 +26,33 @@ export const TriePatchApplyTool = Tool.define(
           if (args.backend) flags.push("--backend", args.backend)
           if (args.commit_mode) flags.push("--commit-mode", args.commit_mode)
           const r = yield* trie.run(flags, { TRIE_SESSION_ID: ctx.sessionID })
-          // Exit 1 carries the ApplyReport with blocking unresolved items — surface it, don't throw.
           if (r.code === 0) return { title: "apply", metadata: {}, output: r.stdout.trim() || "patches applied" }
-          if (r.code === 1) return { title: "apply (unresolved)", metadata: {}, output: r.stdout.trim() || r.stderr.trim() }
-          throw new Error(`trie patch apply failed (exit ${r.code}): ${r.stderr.trim() || "no stderr"}`)
+          // Exit 1 with structured output on stdout = a real ApplyReport with
+          // blocking unresolved items; surface it so the agent can act.
+          const out = r.stdout.trim()
+          if (r.code === 1 && out) return { title: "apply (unresolved)", metadata: {}, output: out }
+          // Otherwise it crashed (e.g. missing API key, internal error). The
+          // traceback lands on stderr; don't dump it at the agent — extract the
+          // last meaningful line so the failure is legible and actionable.
+          throw new Error(`trie patch apply failed (exit ${r.code}): ${summarizeError(r.stderr)}`)
         }),
     }
   }),
 )
+
+// Pull a concise, agent-facing message out of a Python traceback dump. We want
+// the final exception line (e.g. "UserError: Set the ANTHROPIC_API_KEY ...")
+// rather than 100 lines of stack frames. Falls back to a trimmed tail.
+function summarizeError(stderr: string): string {
+  const text = stderr.trim()
+  if (!text) return "no stderr"
+  const lines = text
+    .split("\n")
+    .map((l) => l.replace(/^[│╭╰┃╮╯]\s?|\s?[│┃]$/g, "").trim())
+    .filter((l) => l && !/^[─╌-]+$/.test(l))
+  // Find the exception line ("SomeError: message") and join any wrapped
+  // continuation lines (rich word-wraps long messages across the box width).
+  const idx = lines.findLastIndex((l) => /^[A-Za-z_][\w.]*(Error|Exception):/.test(l))
+  if (idx !== -1) return lines.slice(idx).join(" ").replace(/\s+/g, " ").slice(0, 400)
+  return (lines[lines.length - 1] ?? text).slice(0, 400)
+}
