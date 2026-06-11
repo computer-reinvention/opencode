@@ -8,7 +8,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieGrepEntryPointsTool = Tool.define(
-  "grep_entry_points",
+  "trie_grep_entry_points",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {

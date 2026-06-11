@@ -9,7 +9,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieExplainFlowTool = Tool.define(
-  "explain_flow",
+  "trie_explain_flow",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {

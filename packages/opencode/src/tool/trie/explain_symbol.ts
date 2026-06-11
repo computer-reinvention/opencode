@@ -8,7 +8,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieExplainSymbolTool = Tool.define(
-  "explain_symbol",
+  "trie_explain_symbol",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {

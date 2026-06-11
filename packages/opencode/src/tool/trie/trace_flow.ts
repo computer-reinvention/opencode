@@ -9,7 +9,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieTraceFlowTool = Tool.define(
-  "trace_flow",
+  "trie_trace_flow",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {

@@ -8,7 +8,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieGrepSymbolTool = Tool.define(
-  "grep_symbol",
+  "trie_grep_symbol",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {

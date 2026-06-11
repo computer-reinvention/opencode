@@ -8,7 +8,7 @@ export const Parameters = Schema.Struct({
 })
 
 export const TrieGrepSymbolNeighboursTool = Tool.define(
-  "grep_symbol_neighbours",
+  "trie_grep_symbol_neighbours",
   Effect.gen(function* () {
     const trie = yield* makeTrieRunner()
     return {
