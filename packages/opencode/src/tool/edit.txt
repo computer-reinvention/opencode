@@ -1,10 +1,11 @@
-Performs exact string replacements in files. 
+BACKUP TOOL (fs_edit). Exact string replacement in a file. PREFER the trie patch pipeline for indexed code: trie_patch (modify a symbol), trie_create_symbol / trie_delete_symbol / trie_rename_symbol (structural), then trie_patch_apply.
+
+This tool is REFUSED on trie-indexed code files (it will tell you to use the patch flow). It remains the right tool for:
+- non-indexed files (configs, docs, non-Python code),
+- sub-symbol or non-symbol-region edits trie cannot express (one-line tweaks, module-level constants, file headers),
+- cases where the patch pipeline returns blocking unresolved items.
+Pass force=true to override the refusal for an indexed file when you have a specific reason.
 
 Usage:
-- You must use your `Read` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
-- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: line number + colon + space (e.g., `1: `). Everything after that space is the actual file content to match. Never include any part of the line number prefix in the oldString or newString.
-- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
-- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
-- The edit will FAIL if `oldString` is not found in the file with an error "oldString not found in content".
-- The edit will FAIL if `oldString` is found multiple times in the file with an error "Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match." Either provide a larger string with more surrounding context to make it unique or use `replaceAll` to change every instance of `oldString`. 
-- Use `replaceAll` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.
+- Read the file first (trie_read with show_source, or fs_read).
+- oldString must match exactly (including indentation) and uniquely; use replaceAll to replace every occurrence.

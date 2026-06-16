@@ -1,0 +1,1 @@
+Stage a rename of an existing symbol to a new local name. trie renames the definition and auto-cascades to every call site and import. Applied by trie_patch_apply.

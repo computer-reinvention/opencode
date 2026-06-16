@@ -1,0 +1,1 @@
+Remove pending patches. Pass a qname to drop one symbol's patches, all=true to clear everything, or omit both to drop just this session's patches. Use to undo a staged change before applying.

@@ -1,0 +1,5 @@
+Record an implementation change against an existing symbol — the PRIMARY way to edit indexed code. Instead of hand-editing source, you post a note describing what the symbol should now do; trie regenerates the body and cascades the change to affected callers when applied.
+
+Workflow: trie_patch (one or more) -> trie_patch_preview (see blast radius) -> trie_patch_apply (generate + commit). Multiple patches accumulate and are applied together with a single unifying note.
+
+Use this for modifying functions, methods, and classes in indexed (Python) files. For structural changes use trie_create_symbol / trie_delete_symbol / trie_rename_symbol. For sub-symbol edits (one line), non-symbol regions (module constants, headers), or non-indexed files, use the backup fs_edit tool.

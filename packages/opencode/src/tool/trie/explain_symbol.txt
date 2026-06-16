@@ -1,0 +1,1 @@
+Deep understanding of one symbol: its full prose plus a narrative that weaves together the prose of its callers and callees. Use when you want the story of how a symbol fits into the system, not just its own description.

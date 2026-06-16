@@ -10,6 +10,7 @@ import { Format } from "../../src/format"
 import { Agent } from "../../src/agent/agent"
 import { Bus } from "../../src/bus"
 import { Truncate } from "@/tool/truncate"
+import { Config } from "@/config/config"
 import { SessionID, MessageID } from "../../src/session/schema"
 import * as Tool from "../../src/tool/tool"
 import { testEffect } from "../lib/effect"
@@ -37,6 +38,7 @@ const layer = Layer.mergeAll(
   Bus.layer,
   Truncate.defaultLayer,
   Agent.defaultLayer,
+  Config.defaultLayer,
 )
 
 const it = testEffect(layer)

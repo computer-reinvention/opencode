@@ -1,0 +1,1 @@
+Regex search over source bodies, attributing each match to its enclosing symbol. By default searches only indexed (Python) files. Pass all_files=true to search the WHOLE repo including non-indexed files (TS/JS, configs, docs, lockfiles): in-scope hits are still attributed to symbols, out-of-scope hits return file:line:text. With all_files this covers what the backup fs_grep did.

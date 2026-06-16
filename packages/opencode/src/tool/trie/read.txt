@@ -1,0 +1,7 @@
+Read source code or trie's synthesised description of it — the PRIMARY read tool.
+
+(1) When `path` is a qualified symbol name like 'pkg/module:Name', returns the symbol's prose plus its callers and callees from the trie graph — the cheapest way to understand a symbol and its one-hop neighbourhood.
+
+(2) When `path` is a file path, returns the raw source with line-number prefixes; pass `offset`/`limit` for a line window, or `show_source: true` to force source mode.
+
+Default flow for understanding code: trie_grep to find the qname, then trie_read(qname) for prose, trie_trace for topology. Use show_source right before editing when you need exact bytes. For images/PDFs/binaries and directory listings, use the backup fs_read tool.

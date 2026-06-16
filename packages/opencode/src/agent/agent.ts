@@ -103,6 +103,32 @@ export const layer = Layer.effect(
           ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
         } satisfies Record<string, "allow" | "ask" | "deny">
 
+        // Read-only trie navigation tools — the NATIVE trie tool suite is the
+        // primary code-navigation surface in this fork. Deny-by-default
+        // subagents must explicitly allow these or they fall back to raw
+        // filesystem reads, never exercising the symbol graph (so the attention
+        // map shows nothing). Mutating trie tools (trie_patch*,
+        // trie_create/delete/rename_symbol) are intentionally excluded:
+        // subagents navigate, they don't mutate.
+        const trieReadonlyTools = [
+          "trie_grep",
+          "trie_read",
+          "trie_trace",
+          "trie_grep_str",
+          "trie_find",
+          "trie_blast_radius",
+          "trie_grep_entry_points",
+          "trie_grep_symbol",
+          "trie_grep_symbol_neighbours",
+          "trie_explain_symbol",
+          "trie_explain_symbol_refs",
+          "trie_trace_flow",
+          "trie_explain_flow",
+        ]
+        const trieReadonlyPermission = Object.fromEntries(
+          trieReadonlyTools.map((id) => [id, "allow" as const]),
+        )
+
         const defaults = Permission.fromConfig({
           "*": "allow",
           doom_loop: "ask",
@@ -192,6 +218,7 @@ export const layer = Layer.effect(
                 webfetch: "allow",
                 websearch: "allow",
                 read: "allow",
+                ...trieReadonlyPermission,
                 external_directory: readonlyExternalDirectory,
               }),
               user,
@@ -217,6 +244,7 @@ export const layer = Layer.effect(
                       read: "allow",
                       repo_clone: "allow",
                       repo_overview: "allow",
+                      ...trieReadonlyPermission,
                       external_directory: {
                         ...readonlyExternalDirectory,
                         [path.join(Global.Path.repos, "*")]: "allow",

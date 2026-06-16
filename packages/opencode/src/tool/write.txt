@@ -1,8 +1,10 @@
-Writes a file to the local filesystem.
+BACKUP TOOL (fs_write). Create or overwrite a file. PREFER trie_create_symbol to add a new symbol to an indexed file via the patch pipeline.
+
+This tool is REFUSED when overwriting an existing trie-indexed code file (use the patch flow instead). It remains the right tool for:
+- creating NEW files of any kind (configs, docs, scripts, new modules),
+- writing non-indexed / non-Python files.
+Pass force=true to override the refusal for an existing indexed file.
 
 Usage:
-- This tool will overwrite the existing file if there is one at the provided path.
-- If this is an existing file, you MUST use the Read tool first to read the file's contents. This tool will fail if you did not read the file first.
-- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
-- NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
+- ALWAYS prefer editing an existing file over creating a new one.
+- NEVER proactively create documentation files unless explicitly requested.

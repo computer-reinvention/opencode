@@ -14,6 +14,9 @@ import { InstanceState } from "@/effect/instance-state"
 import { trimDiff } from "./edit"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import * as Bom from "@/util/bom"
+import { Config } from "@/config/config"
+import { makeTrieProbes } from "./trie/shared"
+import { trieGuardError } from "./trie/guard"
 
 const MAX_PROJECT_DIAGNOSTICS_FILES = 5
 
@@ -21,6 +24,9 @@ export const Parameters = Schema.Struct({
   content: Schema.String.annotate({ description: "The content to write to the file" }),
   filePath: Schema.String.annotate({
     description: "The absolute path to the file to write (must be absolute, not relative)",
+  }),
+  force: Schema.optional(Schema.Boolean).annotate({
+    description: "Override the trie guard to overwrite an existing trie-indexed code file directly.",
   }),
 })
 
@@ -31,11 +37,13 @@ export const WriteTool = Tool.define(
     const fs = yield* AppFileSystem.Service
     const bus = yield* Bus.Service
     const format = yield* Format.Service
+    const config = yield* Config.Service
+    const probes = yield* makeTrieProbes()
 
     return {
       description: DESCRIPTION,
       parameters: Parameters,
-      execute: (params: { content: string; filePath: string }, ctx: Tool.Context) =>
+      execute: (params: { content: string; filePath: string; force?: boolean }, ctx: Tool.Context) =>
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const filepath = path.isAbsolute(params.filePath)
@@ -44,6 +52,13 @@ export const WriteTool = Tool.define(
           yield* assertExternalDirectoryEffect(ctx, filepath)
 
           const exists = yield* fs.existsSafe(filepath)
+
+          // trie guard: only block OVERWRITING an existing indexed code file;
+          // creating new files is the legitimate backup role of write.
+          if (exists) {
+            const guard = yield* trieGuardError(config, probes, filepath, params.force === true, "write")
+            if (guard) throw new Error(guard)
+          }
           const source = exists ? yield* Bom.readFile(fs, filepath) : { bom: false, text: "" }
           const next = Bom.split(params.content)
           const desiredBom = source.bom || next.bom

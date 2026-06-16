@@ -20,6 +20,13 @@ export const DesktopPaths = {
   fileTriefact: `${root}/graph/file-triefact`,
   fileSource: `${root}/graph/file-source`,
   activity: `${root}/graph/activity`,
+  patches: `${root}/graph/patches`,
+  patchDrop: `${root}/graph/patch-drop`,
+  patchApply: `${root}/graph/patch-apply`,
+  blastRadius: `${root}/graph/blast-radius`,
+  attention: `${root}/graph/attention`,
+  recordAttention: `${root}/graph/record-attention`,
+  setInvestigation: `${root}/graph/set-investigation`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -73,6 +80,33 @@ export const FileTriefactQuery = Schema.Struct({
 export const FileSourceQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   path: Schema.String,
+})
+
+export const PatchDropPayload = Schema.Struct({
+  qname: Schema.optional(Schema.String),
+})
+
+export const BlastRadiusQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  qname: Schema.String,
+})
+
+// AGM (Attention Gravity Map) — capture + read + investigation declaration.
+export const AttentionQuery = Schema.Struct({
+  ...WorkspaceRoutingQueryFields,
+  since: Schema.optional(Schema.NumberFromString),
+})
+
+export const RecordAttentionPayload = Schema.Struct({
+  type: Schema.String,
+  qname: Schema.String,
+  investigation_id: Schema.optional(Schema.String),
+})
+
+export const SetInvestigationPayload = Schema.Struct({
+  label: Schema.String,
+  status: Schema.optional(Schema.String),
+  investigation_id: Schema.optional(Schema.String),
 })
 
 // Generic JSON response — trie returns arbitrary JSON objects.
@@ -258,6 +292,102 @@ export const DesktopApi = HttpApi.make("desktop").add(
           identifier: "desktop.graph.activity",
           summary: "Activity",
           description: "Return the live trie writer status and the working-tree stale set.",
+        }),
+      ),
+    )
+    .add(
+      // Patches — pending patches grouped by symbol (patch_list).
+      HttpApiEndpoint.get("patches", DesktopPaths.patches, {
+        query: WorkspaceRoutingQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patches",
+          summary: "Patches",
+          description: "Return all pending patches grouped by symbol.",
+        }),
+      ),
+    )
+    .add(
+      // Drop patches for a symbol (or all this session when qname omitted).
+      HttpApiEndpoint.post("patchDrop", DesktopPaths.patchDrop, {
+        query: WorkspaceRoutingQuery,
+        payload: PatchDropPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patchDrop",
+          summary: "Drop patches",
+          description: "Remove pending patches for a symbol, or all this session.",
+        }),
+      ),
+    )
+    .add(
+      // Apply all pending patches.
+      HttpApiEndpoint.post("patchApply", DesktopPaths.patchApply, {
+        query: WorkspaceRoutingQuery,
+        payload: [HttpApiSchema.NoContent, Schema.Struct({ session_note: Schema.optional(Schema.String) })],
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.patchApply",
+          summary: "Apply patches",
+          description: "Apply all pending patches (merge, generate, cascade, commit).",
+        }),
+      ),
+    )
+    .add(
+      // Blast radius — cascade impact of editing a symbol (real compute_cascade).
+      HttpApiEndpoint.get("blastRadius", DesktopPaths.blastRadius, {
+        query: BlastRadiusQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.blastRadius",
+          summary: "Blast radius",
+          description: "Cascade impact (with hop distances) of editing a symbol.",
+        }),
+      ),
+    )
+    .add(
+      // AGM attention read — compressed event log + constant tables for the
+      // desktop to hydrate/replay its live attention model.
+      HttpApiEndpoint.get("attention", DesktopPaths.attention, {
+        query: AttentionQuery,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.attention",
+          summary: "AGM attention",
+          description: "Return recent attention events + weight/edge/synthetic tables.",
+        }),
+      ),
+    )
+    .add(
+      // AGM attention capture — record one attention event (durable side).
+      HttpApiEndpoint.post("recordAttention", DesktopPaths.recordAttention, {
+        query: WorkspaceRoutingQuery,
+        payload: RecordAttentionPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.recordAttention",
+          summary: "Record AGM attention event",
+          description: "Persist one attention event (grep/read/trace/write) on a target.",
+        }),
+      ),
+    )
+    .add(
+      // AGM investigation declaration — explicit task boundary.
+      HttpApiEndpoint.post("setInvestigation", DesktopPaths.setInvestigation, {
+        query: WorkspaceRoutingQuery,
+        payload: SetInvestigationPayload,
+        success: JsonAny,
+      }).annotateMerge(
+        OpenApi.annotations({
+          identifier: "desktop.graph.setInvestigation",
+          summary: "Set AGM investigation",
+          description: "Declare or update the current investigation (open/resolve/abandon).",
         }),
       ),
     )

@@ -9,6 +9,7 @@ import { Bus } from "../../src/bus"
 import { Format } from "../../src/format"
 import { Truncate } from "@/tool/truncate"
 import { Tool } from "@/tool/tool"
+import { Config } from "@/config/config"
 import { Agent } from "../../src/agent/agent"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
@@ -39,6 +40,7 @@ const it = testEffect(
     CrossSpawnSpawner.defaultLayer,
     Truncate.defaultLayer,
     Agent.defaultLayer,
+    Config.defaultLayer,
   ),
 )
 

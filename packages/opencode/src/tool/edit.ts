@@ -18,6 +18,9 @@ import { Snapshot } from "@/snapshot"
 import { assertExternalDirectoryEffect } from "./external-directory"
 import { AppFileSystem } from "@opencode-ai/core/filesystem"
 import * as Bom from "@/util/bom"
+import { Config } from "@/config/config"
+import { makeTrieProbes } from "./trie/shared"
+import { trieGuardError } from "./trie/guard"
 
 function normalizeLineEndings(text: string): string {
   return text.replaceAll("\r\n", "\n")
@@ -53,6 +56,10 @@ export const Parameters = Schema.Struct({
   replaceAll: Schema.optional(Schema.Boolean).annotate({
     description: "Replace all occurrences of oldString (default false)",
   }),
+  force: Schema.optional(Schema.Boolean).annotate({
+    description:
+      "Override the trie guard to edit a trie-indexed code file directly. Only use for sub-symbol or non-symbol-region changes the patch pipeline cannot express.",
+  }),
 })
 
 export const EditTool = Tool.define(
@@ -62,6 +69,8 @@ export const EditTool = Tool.define(
     const afs = yield* AppFileSystem.Service
     const format = yield* Format.Service
     const bus = yield* Bus.Service
+    const config = yield* Config.Service
+    const probes = yield* makeTrieProbes()
 
     return {
       description: DESCRIPTION,
@@ -71,6 +80,12 @@ export const EditTool = Tool.define(
           if (!params.filePath) {
             throw new Error("filePath is required")
           }
+
+          // trie edit guard: refuse to hand-edit a trie-indexed code file —
+          // route the agent to the patch pipeline instead. `force: true` and
+          // the `experimental.trie_edit_guard: false` kill-switch both bypass.
+          const guard = yield* trieGuardError(config, probes, params.filePath, params.force === true, "edit")
+          if (guard) throw new Error(guard)
 
           if (params.oldString === params.newString) {
             throw new Error("No changes to apply: oldString and newString are identical.")

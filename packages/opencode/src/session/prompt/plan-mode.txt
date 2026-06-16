@@ -5,6 +5,8 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 ${planInfo}
 You should build your plan incrementally by writing to or editing this file. NOTE that this is the only file you are allowed to edit - other than this you are only allowed to take READ-ONLY actions.
 
+In a trie-indexed project, prefer the read-only trie tools while planning: `trie_grep`, `trie_read`, `trie_trace`, `trie_grep_entry_points`, `trie_explain_symbol`, `trie_trace_flow`, and `trie_patch_preview` (to gauge the blast radius of an edit) are all safe in plan mode. Do NOT call `trie_patch`, the structural `trie_*_symbol` tools, or `trie_patch_apply` — those stage or perform edits.
+
 ## Plan Workflow
 
 ### Phase 1: Initial Understanding

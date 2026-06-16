@@ -69,6 +69,10 @@ exports[`tool parameters JSON Schema (wire shape) edit 1`] = `
       "description": "The absolute path to the file to modify",
       "type": "string",
     },
+    "force": {
+      "description": "Override the trie guard to edit a trie-indexed code file directly. Only use for sub-symbol or non-symbol-region changes the patch pipeline cannot express.",
+      "type": "boolean",
+    },
     "newString": {
       "description": "The text to replace it with (must be different from oldString)",
       "type": "string",
@@ -480,6 +484,10 @@ exports[`tool parameters JSON Schema (wire shape) write 1`] = `
     "filePath": {
       "description": "The absolute path to the file to write (must be absolute, not relative)",
       "type": "string",
+    },
+    "force": {
+      "description": "Override the trie guard to overwrite an existing trie-indexed code file directly.",
+      "type": "boolean",
     },
   },
   "required": [
